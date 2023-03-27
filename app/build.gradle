@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace 'com.mkdevelopers.myapplication'
+    namespace 'com.mkdevelopers.doodlekong'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.mkdevelopers.myapplication"
+        applicationId "com.mkdevelopers.doodlekong"
         minSdk 24
         targetSdk 33
         versionCode 1

@@ -1,4 +1,4 @@
-package com.mkdevelopers.myapplication
+package com.mkdevelopers.doodlekong
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

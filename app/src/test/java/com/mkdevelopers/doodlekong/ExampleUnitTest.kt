@@ -1,4 +1,4 @@
-package com.mkdevelopers.myapplication
+package com.mkdevelopers.doodlekong
 
 import org.junit.Test
 
