@@ -1,6 +1,8 @@
 package com.mkdevelopers.doodlekong.di
 
 import com.google.gson.Gson
+import com.mkdevelopers.doodlekong.data.remote.api.SetupApi
+import com.mkdevelopers.doodlekong.util.Constants
 import com.mkdevelopers.doodlekong.util.DispatcherProvider
 import dagger.Module
 import dagger.Provides
@@ -8,9 +10,10 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -25,6 +28,22 @@ object AppModule {
                 level = HttpLoggingInterceptor.Level.BODY
             })
             .build()
+    }
+
+    @Singleton
+    @Provides
+    fun provideSetupApi(okHttpClient: OkHttpClient): SetupApi {
+        return Retrofit.Builder()
+            .baseUrl(
+                if(Constants.USE_LOCALHOST)
+                    Constants.HTTP_BASE_URL_LOCALHOST
+                else
+                    Constants.HTTP_BASE_URL
+            )
+            .addConverterFactory(GsonConverterFactory.create())
+            .client(okHttpClient)
+            .build()
+            .create(SetupApi::class.java)
     }
 
     @Singleton
