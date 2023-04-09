@@ -5,7 +5,9 @@ import android.os.Bundle
 import androidx.appcompat.app.AppCompatDelegate
 import com.mkdevelopers.doodlekong.R
 import com.mkdevelopers.doodlekong.databinding.ActivitySetupBinding
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class SetupActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySetupBinding

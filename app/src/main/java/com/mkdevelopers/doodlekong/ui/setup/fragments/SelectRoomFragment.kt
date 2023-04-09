@@ -3,9 +3,10 @@ package com.mkdevelopers.doodlekong.ui.setup.fragments
 import android.os.Bundle
 import android.view.View
 import androidx.fragment.app.Fragment
+import com.mkdevelopers.doodlekong.R
 import com.mkdevelopers.doodlekong.databinding.FragmentSelectRoomBinding
 
-class SelectRoomFragment : Fragment() {
+class SelectRoomFragment : Fragment(R.layout.fragment_select_room) {
 
     private var _binding: FragmentSelectRoomBinding? = null
     private val binding: FragmentSelectRoomBinding

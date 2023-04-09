@@ -3,6 +3,8 @@ package com.mkdevelopers.doodlekong.di
 import android.content.Context
 import com.google.gson.Gson
 import com.mkdevelopers.doodlekong.data.remote.api.SetupApi
+import com.mkdevelopers.doodlekong.repository.DefaultSetupRepository
+import com.mkdevelopers.doodlekong.repository.SetupRepository
 import com.mkdevelopers.doodlekong.util.Constants
 import com.mkdevelopers.doodlekong.util.DispatcherProvider
 import dagger.Module
@@ -21,6 +23,16 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
+
+    @Singleton
+    @Provides
+    fun provideSetupRepository(
+        setupApi: SetupApi,
+        @ApplicationContext context: Context
+    ): SetupRepository = DefaultSetupRepository(
+        setupApi = setupApi,
+        context = context
+    )
 
     @Singleton
     @Provides
