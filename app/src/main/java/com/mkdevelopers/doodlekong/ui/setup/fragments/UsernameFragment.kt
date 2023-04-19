@@ -43,29 +43,30 @@ class UsernameFragment : Fragment(R.layout.fragment_username) {
     }
 
     private fun listenToEvents() {
-        lifecycleScope.launch {
+        viewLifecycleOwner.lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
 
                 /**
-                 * todo: setupEvent flow collects duplicate events
+                 * setupEvent flow collects duplicate events
                  * that's why nav controller gave illegal state exception
                  * need to fix this bug.
+                 * update : fixed by using viewLifecycleOwner
                  */
 
                 viewModel.setupEvent.collect { event ->
 
                     when(event) {
                         is SetupViewModel.SetupEvent.NavigateToSelectRoomEvent -> {
-                            /*findNavController().navigate(
-                                directions = UsernameFragmentDirections.actionUsernameFragmentToSelectRoomFragment(
-                                    /* username = */ event.username
+                            findNavController().navigate(
+                                    directions = UsernameFragmentDirections.actionUsernameFragmentToSelectRoomFragment(
+                                    /*username = */event.username
                                 )
-                            )*/
+                            )
                             println("NavigateToSelectRoomEvent >> fired")
-                            findNavController().navigateSafely(
+                            /*findNavController().navigate(
                                 resId = R.id.action_usernameFragment_to_selectRoomFragment,
                                 args = Bundle().apply { putString("username", event.username) }
-                            )
+                            )*/
                         }
                         SetupViewModel.SetupEvent.InputEmptyError -> {
                             showSnackBar(R.string.error_field_empty)
