@@ -6,6 +6,7 @@ import androidx.navigation.NavController
 import androidx.navigation.NavOptions
 import androidx.navigation.Navigator
 
+@Deprecated("No longer needed")
 fun NavController.navigateSafely(
     @IdRes resId: Int,
     args: Bundle? = null,

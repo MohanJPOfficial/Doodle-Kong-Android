@@ -36,7 +36,7 @@ class RoomAdapter @Inject constructor() : RecyclerView.Adapter<RoomAdapter.RoomV
                 val playerCountText = "${room.playerCount} / ${room.maxPlayers}"
                 tvRoomPersonCount.text = playerCountText
 
-                itemView.setOnClickListener {
+                root.setOnClickListener {
                     onRoomClickListener?.invoke(room)
                 }
             }

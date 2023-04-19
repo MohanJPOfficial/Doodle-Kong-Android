@@ -27,7 +27,7 @@ class UsernameFragment : Fragment(R.layout.fragment_username) {
     private val binding: FragmentUsernameBinding
         get() = _binding!!
 
-    private val viewModel: SetupViewModel by viewModels()
+    private val viewModel: SetupViewModel by activityViewModels()
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -59,7 +59,7 @@ class UsernameFragment : Fragment(R.layout.fragment_username) {
                         is SetupViewModel.SetupEvent.NavigateToSelectRoomEvent -> {
                             findNavController().navigate(
                                     directions = UsernameFragmentDirections.actionUsernameFragmentToSelectRoomFragment(
-                                    /*username = */event.username
+                                        /* username = */event.username
                                 )
                             )
                             println("NavigateToSelectRoomEvent >> fired")
