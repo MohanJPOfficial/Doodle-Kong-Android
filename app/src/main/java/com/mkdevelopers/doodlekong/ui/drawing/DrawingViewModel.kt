@@ -37,23 +37,42 @@ class DrawingViewModel @Inject constructor(
     private val _selectedColorButtonId = MutableStateFlow(R.id.rbBlack)
     val selectedColorButtonId = _selectedColorButtonId.asStateFlow()
 
+    private val _connectionProgressBarVisible = MutableStateFlow(true)
+    val connectionProgressBarVisible = _connectionProgressBarVisible.asStateFlow()
+
+    private val _chooseWordOverlayVisible = MutableStateFlow(false)
+    val chooseWordOverlayVisible = _chooseWordOverlayVisible.asStateFlow()
+
     private val connectionEventChannel = Channel<WebSocket.Event>()
     val connectionEvent = connectionEventChannel.receiveAsFlow().flowOn(dispatchers.io)
 
     private val socketEventChannel = Channel<SocketEvent>()
     val socketEvent = socketEventChannel.receiveAsFlow().flowOn(dispatchers.io)
 
+    init {
+        observeBaseModels()
+        observeEvents()
+    }
+
+    fun setChooseWordOverlayVisibility(isVisible: Boolean) {
+        _chooseWordOverlayVisible.value = isVisible
+    }
+
+    fun setConnectionProgressBarVisibility(isVisible: Boolean) {
+        _connectionProgressBarVisible.value = isVisible
+    }
+
     fun checkRadioButton(id: Int) {
         _selectedColorButtonId.value = id
     }
 
-    fun observeEvents() = viewModelScope.launch(dispatchers.io) {
+    private fun observeEvents() = viewModelScope.launch(dispatchers.io) {
         drawingApi.observeEvents().collect { event ->
             connectionEventChannel.send(event)
         }
     }
 
-    fun observeBaseModels() = viewModelScope.launch(dispatchers.io) {
+    private fun observeBaseModels() = viewModelScope.launch(dispatchers.io) {
         drawingApi.observeBaseModels().collect { data ->
             when(data) {
                 is DrawData -> {
@@ -64,6 +83,7 @@ class DrawingViewModel @Inject constructor(
                         DrawAction.ACTION_UNDO -> socketEventChannel.send(SocketEvent.UndoEvent)
                     }
                 }
+                is GameError -> socketEventChannel.send(SocketEvent.GameErrorEvent(data))
                 is Ping -> sendBaseModel(Ping())
             }
         }
