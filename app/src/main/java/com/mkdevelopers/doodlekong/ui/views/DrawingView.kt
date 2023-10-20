@@ -10,6 +10,7 @@ import android.graphics.PorterDuff
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawData
 import com.mkdevelopers.doodlekong.util.Constants
 import java.util.Stack
 import kotlin.math.abs
@@ -41,6 +42,19 @@ class DrawingView @JvmOverloads constructor(
     private var path = Path()
     private var paths = Stack<PathData>()
     private var pathDataChangedListener: ((Stack<PathData>) -> Unit)? = null
+
+    var roomName: String? = null
+    var isUserDrawing = false
+        set(value) {
+            isEnabled = value
+            field = value
+        }
+
+    private var onDrawListener: ((DrawData) -> Unit)? = null
+
+    fun setOnDrawListener(listener: (DrawData) -> Unit) {
+        onDrawListener = listener
+    }
 
     fun setPathDataChangedListener(listener: (Stack<PathData>) -> Unit) {
         pathDataChangedListener = listener
@@ -79,6 +93,17 @@ class DrawingView @JvmOverloads constructor(
         path.moveTo(x, y)
         curX = x
         curY = y
+
+        onDrawListener?.let { drawListener ->
+            val drawData = createDrawData(
+                fromX = x,
+                fromY = y,
+                toX = x,
+                toY = y,
+                motionEvent = MotionEvent.ACTION_DOWN
+            )
+            drawListener(drawData)
+        }
         invalidate()
     }
 
@@ -89,6 +114,18 @@ class DrawingView @JvmOverloads constructor(
         if(dx >= smoothness || dy >= smoothness) {
             isDrawing = true
             path.quadTo(curX!!, curY!!, (curX!! + toX) / 2f, (curY!! + toY) / 2f)
+
+            onDrawListener?.let { drawListener ->
+                val drawData = createDrawData(
+                    fromX = curX!!,
+                    fromY = curY!!,
+                    toX = toX,
+                    toY = toY,
+                    motionEvent = MotionEvent.ACTION_MOVE
+                )
+
+                drawListener(drawData)
+            }
 
             curX = toX
             curY = toY
@@ -102,6 +139,18 @@ class DrawingView @JvmOverloads constructor(
         paths.push(PathData(path, paint.color, paint.strokeWidth))
 
         pathDataChangedListener?.invoke(paths)
+
+        onDrawListener?.let { drawListener ->
+            val drawData = createDrawData(
+                fromX = curX!!,
+                fromY = curY!!,
+                toX = curX!!,
+                toY = curY!!,
+                motionEvent = MotionEvent.ACTION_UP
+            )
+
+            drawListener(drawData)
+        }
 
         path = Path()
         invalidate()
@@ -122,6 +171,25 @@ class DrawingView @JvmOverloads constructor(
         }
 
         return true
+    }
+
+    private fun createDrawData(
+        fromX: Float,
+        fromY: Float,
+        toX: Float,
+        toY: Float,
+        motionEvent: Int
+    ): DrawData {
+        return DrawData(
+            roomName    = roomName ?: throw IllegalStateException("Must set the room name in drawing view"),
+            color       = paint.color,
+            thickness   = paint.strokeWidth,
+            fromX       = fromX / viewWidth!!,
+            fromY       = fromY / viewHeight!!,
+            toX         = toX / viewWidth!!,
+            toY         = toY / viewHeight!!,
+            motionEvent = motionEvent
+        )
     }
 
     fun setThickness(thickness: Float) {
