@@ -20,6 +20,8 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.mkdevelopers.doodlekong.R
+import com.mkdevelopers.doodlekong.data.remote.ws.model.BaseModel
+import com.mkdevelopers.doodlekong.data.remote.ws.model.ChatMessage
 import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawAction
 import com.mkdevelopers.doodlekong.data.remote.ws.model.GameError
 import com.mkdevelopers.doodlekong.data.remote.ws.model.JoinRoomHandshake
@@ -28,6 +30,7 @@ import com.mkdevelopers.doodlekong.ui.adapters.ChatMessageAdapter
 import com.mkdevelopers.doodlekong.util.Constants
 import com.tinder.scarlet.WebSocket
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -47,6 +50,8 @@ class DrawingActivity : AppCompatActivity() {
     private lateinit var rvPlayers: RecyclerView
 
     private lateinit var chatMessageAdapter: ChatMessageAdapter
+
+    private var updateChatJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -89,6 +94,22 @@ class DrawingActivity : AppCompatActivity() {
             override fun onDrawerStateChanged(newState: Int) = Unit
         })
 
+        binding.ibClearText.setOnClickListener {
+            binding.etMessage.text?.clear()
+        }
+
+        binding.ibSend.setOnClickListener {
+            viewModel.sendChatMessage(
+                ChatMessage(
+                    from = args.username,
+                    roomName = args.roomName,
+                    message = binding.etMessage.text.toString(),
+                    timestamp = System.currentTimeMillis()
+                )
+            )
+            binding.etMessage.text?.clear()
+        }
+
         binding.ibUndo.setOnClickListener {
             if(binding.drawingView.isUserDrawing) {
                 binding.drawingView.undo()
@@ -118,6 +139,14 @@ class DrawingActivity : AppCompatActivity() {
     private fun subscribeToUiStateUpdates() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
+
+                launch {
+                    viewModel.chat.collect { chat ->
+                        if(chatMessageAdapter.chatObjects.isEmpty()) {
+                            updateChatMessageList(chat)
+                        }
+                    }
+                }
 
                 launch {
                     viewModel.selectedColorButtonId.collect { id ->
@@ -178,6 +207,12 @@ class DrawingActivity : AppCompatActivity() {
                             }
                         }
                     }
+                    is SocketEvent.ChatMessageEvent -> {
+                        addChatObjectToRecyclerView(event.data)
+                    }
+                    is SocketEvent.AnnouncementEvent -> {
+                        addChatObjectToRecyclerView(event.data)
+                    }
                     is SocketEvent.UndoEvent -> {
                         binding.drawingView.undo()
                     }
@@ -225,10 +260,47 @@ class DrawingActivity : AppCompatActivity() {
         }
     }
 
+    override fun onPause() {
+        super.onPause()
+        /**
+         * save the scroll state on config. changes
+         */
+        binding.rvChat.layoutManager?.onSaveInstanceState()
+    }
+
+    private fun updateChatMessageList(chat: List<BaseModel>) {
+        updateChatJob?.cancel()
+        updateChatJob = lifecycleScope.launch {
+            chatMessageAdapter.updateDataset(chat)
+        }
+    }
+
+    /**
+     * called when single chat object from socket..
+     */
+    private suspend fun addChatObjectToRecyclerView(chatObject: BaseModel) {
+        val canScrollDown = binding.rvChat.canScrollVertically(1)
+        updateChatMessageList(chatMessageAdapter.chatObjects + chatObject)
+        updateChatJob?.join()
+
+        /**
+         * scroll to down when user reached last item and prevent when user in middle of the list..
+         */
+        if(!canScrollDown) {
+            binding.rvChat.scrollToPosition(chatMessageAdapter.chatObjects.size - 1)
+        }
+    }
+
     private fun setupRecyclerView() = binding.rvChat.apply {
         chatMessageAdapter = ChatMessageAdapter(args.username)
         adapter = chatMessageAdapter
         layoutManager = LinearLayoutManager(this@DrawingActivity)
+
+        /**
+         * restore the scroll state when config. changes
+         */
+        chatMessageAdapter.stateRestorationPolicy =
+            RecyclerView.Adapter.StateRestorationPolicy.PREVENT_WHEN_EMPTY
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
