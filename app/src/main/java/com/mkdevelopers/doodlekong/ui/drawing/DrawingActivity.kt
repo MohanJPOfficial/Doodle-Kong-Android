@@ -28,6 +28,7 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.JoinRoomHandshake
 import com.mkdevelopers.doodlekong.databinding.ActivityDrawingBinding
 import com.mkdevelopers.doodlekong.ui.adapters.ChatMessageAdapter
 import com.mkdevelopers.doodlekong.util.Constants
+import com.mkdevelopers.doodlekong.util.hideKeyboard
 import com.tinder.scarlet.WebSocket
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
@@ -108,6 +109,7 @@ class DrawingActivity : AppCompatActivity() {
                 )
             )
             binding.etMessage.text?.clear()
+            hideKeyboard(binding.root)
         }
 
         binding.ibUndo.setOnClickListener {
