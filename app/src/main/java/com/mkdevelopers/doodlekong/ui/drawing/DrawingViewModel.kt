@@ -34,6 +34,9 @@ class DrawingViewModel @Inject constructor(
     private val gson: Gson
 ) : ViewModel() {
 
+    private val _newWords = MutableStateFlow(NewWords(listOf()))
+    val newWords = _newWords.asStateFlow()
+
     private val _chat = MutableStateFlow<List<BaseModel>>(listOf())
     val chat = _chat.asStateFlow()
 
@@ -84,8 +87,15 @@ class DrawingViewModel @Inject constructor(
                 is ChatMessage -> {
                     socketEventChannel.send(SocketEvent.ChatMessageEvent(data))
                 }
+                is ChosenWord -> {
+                    socketEventChannel.send(SocketEvent.ChosenWordEvent(data))
+                }
                 is Announcement -> {
                     socketEventChannel.send(SocketEvent.AnnouncementEvent(data))
+                }
+                is NewWords -> {
+                    _newWords.value = data
+                    socketEventChannel.send(SocketEvent.NewWordsEvent(data))
                 }
                 is DrawAction -> {
                     when(data.action) {
@@ -96,6 +106,11 @@ class DrawingViewModel @Inject constructor(
                 is Ping -> sendBaseModel(Ping())
             }
         }
+    }
+
+    fun chooseWord(word: String, roomName: String) {
+        val chosenWord = ChosenWord(word, roomName)
+        sendBaseModel(chosenWord)
     }
 
     fun sendChatMessage(message: ChatMessage) {

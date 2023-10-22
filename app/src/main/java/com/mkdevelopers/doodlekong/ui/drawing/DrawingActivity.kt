@@ -58,6 +58,7 @@ class DrawingActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityDrawingBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         subscribeToUiStateUpdates()
         listenToConnectionEvents()
         listenToSocketEvents()
@@ -151,6 +152,17 @@ class DrawingActivity : AppCompatActivity() {
                 }
 
                 launch {
+                    viewModel.newWords.collect {
+                        val newWords = it.newWords
+
+                        if(newWords.isEmpty())
+                            return@collect
+
+                        bindThreeWords(newWords)
+                    }
+                }
+
+                launch {
                     viewModel.selectedColorButtonId.collect { id ->
                         binding.colorGroup.check(id)
 
@@ -186,6 +198,27 @@ class DrawingActivity : AppCompatActivity() {
         }
     }
 
+    private fun bindThreeWords(newWords: List<String>) {
+        binding.apply {
+            btnFirstWord.text = newWords[0]
+            btnSecondWord.text = newWords[1]
+            btnThirdWord.text = newWords[2]
+
+            btnFirstWord.setOnClickListener {
+                viewModel.chooseWord(newWords[0], args.roomName)
+                viewModel.setChooseWordOverlayVisibility(false)
+            }
+            btnSecondWord.setOnClickListener {
+                viewModel.chooseWord(newWords[1], args.roomName)
+                viewModel.setChooseWordOverlayVisibility(false)
+            }
+            btnThirdWord.setOnClickListener {
+                viewModel.chooseWord(newWords[2], args.roomName)
+                viewModel.setChooseWordOverlayVisibility(false)
+            }
+        }
+    }
+
     private fun listenToSocketEvents() = lifecycleScope.launch {
         repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.socketEvent.collect { event ->
@@ -208,6 +241,10 @@ class DrawingActivity : AppCompatActivity() {
                                 }
                             }
                         }
+                    }
+                    is SocketEvent.ChosenWordEvent -> {
+                        binding.tvCurWord.text = event.data.chosenWord
+                        binding.ibUndo.isEnabled = false
                     }
                     is SocketEvent.ChatMessageEvent -> {
                         addChatObjectToRecyclerView(event.data)
