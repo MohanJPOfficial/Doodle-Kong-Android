@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.mkdevelopers.doodlekong.R
 import com.mkdevelopers.doodlekong.data.remote.ws.DrawingApi
+import com.mkdevelopers.doodlekong.data.remote.ws.Room
 import com.mkdevelopers.doodlekong.data.remote.ws.model.Announcement
 import com.mkdevelopers.doodlekong.data.remote.ws.model.BaseModel
 import com.mkdevelopers.doodlekong.data.remote.ws.model.ChatMessage
@@ -14,11 +15,14 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawData
 import com.mkdevelopers.doodlekong.data.remote.ws.model.GameError
 import com.mkdevelopers.doodlekong.data.remote.ws.model.GameState
 import com.mkdevelopers.doodlekong.data.remote.ws.model.NewWords
+import com.mkdevelopers.doodlekong.data.remote.ws.model.PhaseChange
 import com.mkdevelopers.doodlekong.data.remote.ws.model.Ping
 import com.mkdevelopers.doodlekong.data.remote.ws.model.RoundDrawInfo
+import com.mkdevelopers.doodlekong.util.CoroutineTimer
 import com.mkdevelopers.doodlekong.util.DispatcherProvider
 import com.tinder.scarlet.WebSocket
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -36,6 +40,12 @@ class DrawingViewModel @Inject constructor(
 
     private val _newWords = MutableStateFlow(NewWords(listOf()))
     val newWords = _newWords.asStateFlow()
+
+    private val _phase = MutableStateFlow(PhaseChange(null, 0L, null))
+    val phase = _phase.asStateFlow()
+
+    private val _phaseTime = MutableStateFlow(0L)
+    val phaseTime = _phaseTime.asStateFlow()
 
     private val _chat = MutableStateFlow<List<BaseModel>>(listOf())
     val chat = _chat.asStateFlow()
@@ -55,9 +65,23 @@ class DrawingViewModel @Inject constructor(
     private val socketEventChannel = Channel<SocketEvent>()
     val socketEvent = socketEventChannel.receiveAsFlow().flowOn(dispatchers.io)
 
+    private val timer = CoroutineTimer()
+    private var timerJob: Job? = null
+
     init {
         observeBaseModels()
         observeEvents()
+    }
+
+    private fun setTimer(duration: Long) {
+        timerJob?.cancel()
+        timerJob = timer.timeAndEmit(duration, viewModelScope) {
+            _phaseTime.value = it
+        }
+    }
+
+    fun cancelTimer() {
+        timerJob?.cancel()
     }
 
     fun setChooseWordOverlayVisibility(isVisible: Boolean) {
@@ -100,6 +124,16 @@ class DrawingViewModel @Inject constructor(
                 is DrawAction -> {
                     when(data.action) {
                         DrawAction.ACTION_UNDO -> socketEventChannel.send(SocketEvent.UndoEvent)
+                    }
+                }
+                is PhaseChange -> {
+                    data.phase?.let {
+                        _phase.value = data
+                    }
+                    _phaseTime.value = data.time
+
+                    if(data.phase != Room.Phase.WAITING_FOR_PLAYERS) {
+                        setTimer(data.time)
                     }
                 }
                 is GameError -> socketEventChannel.send(SocketEvent.GameErrorEvent(data))

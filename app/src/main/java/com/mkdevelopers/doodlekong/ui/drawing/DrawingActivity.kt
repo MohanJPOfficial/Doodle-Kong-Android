@@ -20,11 +20,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.snackbar.Snackbar
 import com.mkdevelopers.doodlekong.R
+import com.mkdevelopers.doodlekong.data.remote.ws.Room
 import com.mkdevelopers.doodlekong.data.remote.ws.model.BaseModel
 import com.mkdevelopers.doodlekong.data.remote.ws.model.ChatMessage
 import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawAction
 import com.mkdevelopers.doodlekong.data.remote.ws.model.GameError
 import com.mkdevelopers.doodlekong.data.remote.ws.model.JoinRoomHandshake
+import com.mkdevelopers.doodlekong.data.remote.ws.model.PhaseChange
 import com.mkdevelopers.doodlekong.databinding.ActivityDrawingBinding
 import com.mkdevelopers.doodlekong.ui.adapters.ChatMessageAdapter
 import com.mkdevelopers.doodlekong.util.Constants
@@ -184,6 +186,21 @@ class DrawingActivity : AppCompatActivity() {
                 }
 
                 launch {
+                    viewModel.phaseTime.collect { time ->
+                        binding.apply {
+                            roundTimerProgressBar.progress = time.toInt()
+                            tvRemainingTimeChooseWord.text = (time / 1000L).toString()
+                        }
+                    }
+                }
+
+                launch {
+                    viewModel.phase.collect { phaseChange ->
+                        bindGamePhase(phaseChange)
+                    }
+                }
+
+                launch {
                     viewModel.connectionProgressBarVisible.collect { isVisible ->
                         binding.connectionProgressBar.isVisible = isVisible
                     }
@@ -216,6 +233,56 @@ class DrawingActivity : AppCompatActivity() {
                 viewModel.chooseWord(newWords[2], args.roomName)
                 viewModel.setChooseWordOverlayVisibility(false)
             }
+        }
+    }
+
+    private fun bindGamePhase(phaseChange: PhaseChange) {
+        when(phaseChange.phase) {
+            Room.Phase.WAITING_FOR_PLAYERS -> {
+                binding.tvCurWord.text = getString(R.string.waiting_for_players)
+                viewModel.cancelTimer()
+                viewModel.setConnectionProgressBarVisibility(false)
+                binding.roundTimerProgressBar.progress = binding.roundTimerProgressBar.max
+            }
+            Room.Phase.WAITING_FOR_START -> {
+                binding.apply {
+                    roundTimerProgressBar.max = phaseChange.time.toInt()
+                    tvCurWord.text = getString(R.string.waiting_for_start)
+                }
+            }
+            Room.Phase.NEW_ROUND -> {
+                phaseChange.drawingPlayer?.let {
+                    binding.tvCurWord.text = getString(R.string.player_is_drawing, phaseChange.drawingPlayer)
+                }
+                binding.apply {
+                    drawingView.isEnabled = false
+                    drawingView.setColor(Color.BLACK)
+                    drawingView.setThickness(Constants.DEFAULT_PAINT_THICKNESS)
+                    roundTimerProgressBar.max = phaseChange.time.toInt()
+
+                    chooseWordOverlay.isVisible = phaseChange.drawingPlayer == args.username
+                }
+            }
+            Room.Phase.GAME_RUNNING -> {
+                binding.apply {
+                    chooseWordOverlay.isVisible = false
+                    roundTimerProgressBar.max = phaseChange.time.toInt()
+                }
+            }
+            Room.Phase.SHOW_WORD -> {
+                binding.apply {
+                    if(drawingView.isDrawing) {
+                        drawingView.finishOffDrawing()
+                    }
+                    drawingView.apply {
+                        isEnabled = false
+                        setColor(Color.BLACK)
+                        setThickness(Constants.DEFAULT_PAINT_THICKNESS)
+                    }
+                    roundTimerProgressBar.max = phaseChange.time.toInt()
+                }
+            }
+            else -> Unit
         }
     }
 
