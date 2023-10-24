@@ -3,6 +3,7 @@ package com.mkdevelopers.doodlekong.ui.drawing
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.mkdevelopers.doodlekong.R
 import com.mkdevelopers.doodlekong.data.remote.ws.DrawingApi
 import com.mkdevelopers.doodlekong.data.remote.ws.Room
@@ -17,8 +18,11 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.GameState
 import com.mkdevelopers.doodlekong.data.remote.ws.model.NewWords
 import com.mkdevelopers.doodlekong.data.remote.ws.model.PhaseChange
 import com.mkdevelopers.doodlekong.data.remote.ws.model.Ping
+import com.mkdevelopers.doodlekong.data.remote.ws.model.PlayerData
+import com.mkdevelopers.doodlekong.data.remote.ws.model.PlayersList
 import com.mkdevelopers.doodlekong.data.remote.ws.model.RoundDrawInfo
 import com.mkdevelopers.doodlekong.ui.views.DrawingView
+import com.mkdevelopers.doodlekong.util.Constants
 import com.mkdevelopers.doodlekong.util.CoroutineTimer
 import com.mkdevelopers.doodlekong.util.DispatcherProvider
 import com.tinder.scarlet.WebSocket
@@ -42,6 +46,9 @@ class DrawingViewModel @Inject constructor(
 
     private val _pathData = MutableStateFlow(Stack<DrawingView.PathData>())
     val pathData = _pathData.asStateFlow()
+
+    private val _players = MutableStateFlow(listOf<PlayerData>())
+    val players = _players.asStateFlow()
 
     private val _newWords = MutableStateFlow(NewWords(listOf()))
     val newWords = _newWords.asStateFlow()
@@ -126,12 +133,28 @@ class DrawingViewModel @Inject constructor(
                 is ChosenWord -> {
                     socketEventChannel.send(SocketEvent.ChosenWordEvent(data))
                 }
+                is RoundDrawInfo -> {
+                    val drawActions = mutableListOf<BaseModel>()
+                    data.data.forEach { drawAction ->
+                        val jsonObject = JsonParser.parseString(drawAction).asJsonObject
+                        val type = when(jsonObject.get("type").asString) {
+                            Constants.TYPE_DRAW_DATA -> DrawData::class.java
+                            Constants.TYPE_DRAW_ACTION -> DrawAction::class.java
+                            else -> BaseModel::class.java
+                        }
+                        drawActions.add(gson.fromJson(drawAction, type))
+                    }
+                    socketEventChannel.send(SocketEvent.RoundDrawInfoEvent(drawActions))
+                }
                 is Announcement -> {
                     socketEventChannel.send(SocketEvent.AnnouncementEvent(data))
                 }
                 is GameState -> {
                     _gameState.value = data
                     socketEventChannel.send(SocketEvent.GameStateEvent(data))
+                }
+                is PlayersList -> {
+                    _players.value = data.players
                 }
                 is NewWords -> {
                     _newWords.value = data
@@ -185,6 +208,6 @@ sealed class SocketEvent {
     data class NewWordsEvent(val data: NewWords): SocketEvent()
     data class ChosenWordEvent(val data: ChosenWord): SocketEvent()
     data class GameErrorEvent(val data: GameError): SocketEvent()
-    data class RoundDrawInfoEvent(val data: RoundDrawInfo): SocketEvent()
+    data class RoundDrawInfoEvent(val data: List<BaseModel>): SocketEvent()
     object UndoEvent: SocketEvent()
 }

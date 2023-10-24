@@ -27,6 +27,7 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawAction
 import com.mkdevelopers.doodlekong.data.remote.ws.model.GameError
 import com.mkdevelopers.doodlekong.data.remote.ws.model.JoinRoomHandshake
 import com.mkdevelopers.doodlekong.data.remote.ws.model.PhaseChange
+import com.mkdevelopers.doodlekong.data.remote.ws.model.PlayerData
 import com.mkdevelopers.doodlekong.databinding.ActivityDrawingBinding
 import com.mkdevelopers.doodlekong.ui.adapters.ChatMessageAdapter
 import com.mkdevelopers.doodlekong.ui.adapters.PlayerAdapter
@@ -59,6 +60,7 @@ class DrawingActivity : AppCompatActivity() {
     private lateinit var chatMessageAdapter: ChatMessageAdapter
 
     private var updateChatJob: Job? = null
+    private var updatePlayersJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -222,6 +224,12 @@ class DrawingActivity : AppCompatActivity() {
                 }
 
                 launch {
+                    viewModel.players.collect { players ->
+                        updatePlayersList(players)
+                    }
+                }
+
+                launch {
                     viewModel.phaseTime.collect { time ->
                         binding.apply {
                             roundTimerProgressBar.progress = time.toInt()
@@ -345,6 +353,9 @@ class DrawingActivity : AppCompatActivity() {
                             }
                         }
                     }
+                    is SocketEvent.RoundDrawInfoEvent -> {
+                        //binding.drawing.upd
+                    }
                     is SocketEvent.GameStateEvent -> {
                         binding.drawingView.clear()
                     }
@@ -411,6 +422,13 @@ class DrawingActivity : AppCompatActivity() {
          * save the scroll state on config. changes
          */
         binding.rvChat.layoutManager?.onSaveInstanceState()
+    }
+
+    private fun updatePlayersList(players: List<PlayerData>) {
+        updatePlayersJob?.cancel()
+        updatePlayersJob = lifecycleScope.launch {
+            playerAdapter.updateDataset(players)
+        }
     }
 
     private fun updateChatMessageList(chat: List<BaseModel>) {
