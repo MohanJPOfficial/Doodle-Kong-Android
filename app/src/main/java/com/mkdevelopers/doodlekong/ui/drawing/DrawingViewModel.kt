@@ -18,6 +18,7 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.NewWords
 import com.mkdevelopers.doodlekong.data.remote.ws.model.PhaseChange
 import com.mkdevelopers.doodlekong.data.remote.ws.model.Ping
 import com.mkdevelopers.doodlekong.data.remote.ws.model.RoundDrawInfo
+import com.mkdevelopers.doodlekong.ui.views.DrawingView
 import com.mkdevelopers.doodlekong.util.CoroutineTimer
 import com.mkdevelopers.doodlekong.util.DispatcherProvider
 import com.tinder.scarlet.WebSocket
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.util.Stack
 import javax.inject.Inject
 
 @HiltViewModel
@@ -38,6 +40,9 @@ class DrawingViewModel @Inject constructor(
     private val gson: Gson
 ) : ViewModel() {
 
+    private val _pathData = MutableStateFlow(Stack<DrawingView.PathData>())
+    val pathData = _pathData.asStateFlow()
+
     private val _newWords = MutableStateFlow(NewWords(listOf()))
     val newWords = _newWords.asStateFlow()
 
@@ -46,6 +51,9 @@ class DrawingViewModel @Inject constructor(
 
     private val _phaseTime = MutableStateFlow(0L)
     val phaseTime = _phaseTime.asStateFlow()
+
+    private val _gameState = MutableStateFlow(GameState("", ""))
+    val gameState = _gameState.asStateFlow()
 
     private val _chat = MutableStateFlow<List<BaseModel>>(listOf())
     val chat = _chat.asStateFlow()
@@ -84,6 +92,10 @@ class DrawingViewModel @Inject constructor(
         timerJob?.cancel()
     }
 
+    fun setPathData(stack: Stack<DrawingView.PathData>) {
+        _pathData.value = stack
+    }
+
     fun setChooseWordOverlayVisibility(isVisible: Boolean) {
         _chooseWordOverlayVisible.value = isVisible
     }
@@ -116,6 +128,10 @@ class DrawingViewModel @Inject constructor(
                 }
                 is Announcement -> {
                     socketEventChannel.send(SocketEvent.AnnouncementEvent(data))
+                }
+                is GameState -> {
+                    _gameState.value = data
+                    socketEventChannel.send(SocketEvent.GameStateEvent(data))
                 }
                 is NewWords -> {
                     _newWords.value = data
