@@ -29,6 +29,7 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.JoinRoomHandshake
 import com.mkdevelopers.doodlekong.data.remote.ws.model.PhaseChange
 import com.mkdevelopers.doodlekong.databinding.ActivityDrawingBinding
 import com.mkdevelopers.doodlekong.ui.adapters.ChatMessageAdapter
+import com.mkdevelopers.doodlekong.ui.adapters.PlayerAdapter
 import com.mkdevelopers.doodlekong.util.Constants
 import com.mkdevelopers.doodlekong.util.hideKeyboard
 import com.tinder.scarlet.WebSocket
@@ -52,6 +53,9 @@ class DrawingActivity : AppCompatActivity() {
     private lateinit var toggle: ActionBarDrawerToggle
     private lateinit var rvPlayers: RecyclerView
 
+    @Inject
+    lateinit var playerAdapter: PlayerAdapter
+
     private lateinit var chatMessageAdapter: ChatMessageAdapter
 
     private var updateChatJob: Job? = null
@@ -74,6 +78,11 @@ class DrawingActivity : AppCompatActivity() {
         val header = layoutInflater.inflate(R.layout.nav_drawer_header, binding.navView)
         rvPlayers = header.findViewById(R.id.rvPlayers)
         binding.root.setDrawerLockMode(DrawerLayout.LOCK_MODE_LOCKED_CLOSED)
+
+        rvPlayers.apply {
+            adapter = playerAdapter
+            layoutManager = LinearLayoutManager(this@DrawingActivity)
+        }
 
         binding.ibPlayers.setOnClickListener {
             binding.root.setDrawerLockMode(DrawerLayout.LOCK_MODE_UNLOCKED)
