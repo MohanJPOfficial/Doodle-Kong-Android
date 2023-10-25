@@ -354,7 +354,7 @@ class DrawingActivity : AppCompatActivity() {
                         }
                     }
                     is SocketEvent.RoundDrawInfoEvent -> {
-                        //binding.drawing.upd
+                        binding.drawingView.update(event.data)
                     }
                     is SocketEvent.GameStateEvent -> {
                         binding.drawingView.clear()
