@@ -11,6 +11,7 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.Announcement
 import com.mkdevelopers.doodlekong.data.remote.ws.model.BaseModel
 import com.mkdevelopers.doodlekong.data.remote.ws.model.ChatMessage
 import com.mkdevelopers.doodlekong.data.remote.ws.model.ChosenWord
+import com.mkdevelopers.doodlekong.data.remote.ws.model.DisconnectRequest
 import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawAction
 import com.mkdevelopers.doodlekong.data.remote.ws.model.DrawData
 import com.mkdevelopers.doodlekong.data.remote.ws.model.GameError
@@ -34,6 +35,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import java.util.Stack
 import javax.inject.Inject
 
@@ -43,6 +45,8 @@ class DrawingViewModel @Inject constructor(
     private val dispatchers: DispatcherProvider,
     private val gson: Gson
 ) : ViewModel() {
+
+    private val tag = DrawingViewModel::class.java.simpleName
 
     private val _pathData = MutableStateFlow(Stack<DrawingView.PathData>())
     val pathData = _pathData.asStateFlow()
@@ -179,6 +183,11 @@ class DrawingViewModel @Inject constructor(
                 is Ping -> sendBaseModel(Ping())
             }
         }
+    }
+
+    fun disconnect() {
+        Timber.d("$tag >> disconnect called...")
+        sendBaseModel(DisconnectRequest())
     }
 
     fun chooseWord(word: String, roomName: String) {
