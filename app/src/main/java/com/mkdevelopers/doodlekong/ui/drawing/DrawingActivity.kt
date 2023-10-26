@@ -5,6 +5,8 @@ import android.os.Bundle
 import android.view.MenuItem
 import android.view.MotionEvent
 import android.view.View
+import android.window.OnBackInvokedDispatcher
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.viewModels
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
@@ -36,6 +38,7 @@ import com.mkdevelopers.doodlekong.data.remote.ws.model.PlayerData
 import com.mkdevelopers.doodlekong.databinding.ActivityDrawingBinding
 import com.mkdevelopers.doodlekong.ui.adapters.ChatMessageAdapter
 import com.mkdevelopers.doodlekong.ui.adapters.PlayerAdapter
+import com.mkdevelopers.doodlekong.ui.dialogs.LeaveDialog
 import com.mkdevelopers.doodlekong.util.Constants
 import com.mkdevelopers.doodlekong.util.hideKeyboard
 import com.tinder.scarlet.WebSocket
@@ -67,10 +70,23 @@ class DrawingActivity : AppCompatActivity(), LifecycleObserver {
     private var updateChatJob: Job? = null
     private var updatePlayersJob: Job? = null
 
+    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            LeaveDialog().apply {
+                setPositiveClickListener {
+                    viewModel.disconnect()
+                    finish()
+                }
+            }.show(supportFragmentManager, null)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDrawingBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
         //lifecycle.addObserver(this)
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
