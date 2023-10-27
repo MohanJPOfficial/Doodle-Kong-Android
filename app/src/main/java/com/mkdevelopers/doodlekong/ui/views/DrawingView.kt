@@ -59,6 +59,10 @@ class DrawingView @JvmOverloads constructor(
         onDrawListener = listener
     }
 
+    fun setPaths(pathData: Stack<PathData>) {
+        this.paths = pathData
+    }
+
     fun setPathDataChangedListener(listener: (Stack<PathData>) -> Unit) {
         pathDataChangedListener = listener
     }

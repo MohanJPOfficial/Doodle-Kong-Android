@@ -1,22 +1,10 @@
 package com.mkdevelopers.doodlekong.di
 
-import android.app.Application
 import android.content.Context
 import com.google.gson.Gson
-import com.mkdevelopers.doodlekong.data.remote.api.SetupApi
-import com.mkdevelopers.doodlekong.data.remote.ws.CustomGsonMessageAdapter
-import com.mkdevelopers.doodlekong.data.remote.ws.DrawingApi
-import com.mkdevelopers.doodlekong.data.remote.ws.FlowStreamAdapter
-import com.mkdevelopers.doodlekong.repository.DefaultSetupRepository
-import com.mkdevelopers.doodlekong.repository.SetupRepository
-import com.mkdevelopers.doodlekong.util.Constants
 import com.mkdevelopers.doodlekong.util.DispatcherProvider
 import com.mkdevelopers.doodlekong.util.clientId
 import com.mkdevelopers.doodlekong.util.dataStore
-import com.tinder.scarlet.Scarlet
-import com.tinder.scarlet.lifecycle.android.AndroidLifecycle
-import com.tinder.scarlet.retry.LinearBackoffStrategy
-import com.tinder.scarlet.websocket.okhttp.newWebSocketFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,23 +15,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
-
-    @Singleton
-    @Provides
-    fun provideSetupRepository(
-        setupApi: SetupApi,
-        @ApplicationContext context: Context
-    ): SetupRepository = DefaultSetupRepository(
-        setupApi = setupApi,
-        context = context
-    )
 
     @Singleton
     @Provides
@@ -68,46 +44,6 @@ object AppModule {
     @Provides
     fun provideClientId(@ApplicationContext context: Context): String {
         return runBlocking { context.dataStore.clientId() }
-    }
-
-    @Singleton
-    @Provides
-    fun provideDrawingApi(
-        app: Application,
-        okHttpClient: OkHttpClient,
-        gson: Gson
-    ): DrawingApi {
-        return Scarlet.Builder()
-            .backoffStrategy(LinearBackoffStrategy(Constants.RECONNECT_INTERVAL))
-            .lifecycle(AndroidLifecycle.ofApplicationForeground(app))
-            .webSocketFactory(
-                okHttpClient.newWebSocketFactory(
-                    if(Constants.USE_LOCALHOST)
-                        Constants.WS_BASE_URL_LOCALHOST
-                    else
-                        Constants.WS_BASE_URL
-                )
-            )
-            .addStreamAdapterFactory(FlowStreamAdapter.Factory)
-            .addMessageAdapterFactory(CustomGsonMessageAdapter.Factory(gson))
-            .build()
-            .create()
-    }
-
-    @Singleton
-    @Provides
-    fun provideSetupApi(okHttpClient: OkHttpClient): SetupApi {
-        return Retrofit.Builder()
-            .baseUrl(
-                if (Constants.USE_LOCALHOST)
-                    Constants.HTTP_BASE_URL_LOCALHOST
-                else
-                    Constants.HTTP_BASE_URL
-            )
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(okHttpClient)
-            .build()
-            .create(SetupApi::class.java)
     }
 
     @Singleton

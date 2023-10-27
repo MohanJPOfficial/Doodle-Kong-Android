@@ -323,6 +323,12 @@ class DrawingActivity : AppCompatActivity(), LifecycleObserver,
                 }
 
                 launch {
+                    viewModel.pathData.collect { pathData ->
+                        binding.drawingView.setPaths(pathData)
+                    }
+                }
+
+                launch {
                     viewModel.chat.collect { chat ->
                         if(chatMessageAdapter.chatObjects.isEmpty()) {
                             updateChatMessageList(chat)
